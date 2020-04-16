@@ -6,6 +6,9 @@ import gym
 from gym import error, spaces
 from gym.utils import seeding
 
+import pdb
+from gym.envs.mujoco import mujoco_env
+
 try:
     import mujoco_py
 except ImportError as e:
@@ -13,8 +16,8 @@ except ImportError as e:
 
 DEFAULT_SIZE = 500
 
-class RobotEnv(gym.GoalEnv):
-    def __init__(self, model_path, initial_qpos, n_actions, n_substeps):
+class SuperEnv(gym.Env):
+    def __init__(self, model_path, initial_qpos, n_substeps, frame_skip=5):
         if model_path.startswith('/'):
             fullpath = model_path
         else:
@@ -26,24 +29,29 @@ class RobotEnv(gym.GoalEnv):
         self.sim = mujoco_py.MjSim(model, nsubsteps=n_substeps)
         self.viewer = None
         self._viewers = {}
+        self.iter = 0
         self.metadata = {
             'render.modes': ['human', 'rgb_array'],
             'video.frames_per_second': int(np.round(1.0 / self.dt))
         }
 
+        self.frame_skip = frame_skip
         self.seed()
         self._env_setup(initial_qpos=initial_qpos)
         self.initial_state = copy.deepcopy(self.sim.get_state())
-        self.table_info()
 
         self.goal = self._sample_goal()
         obs = self._get_obs()
-        self.action_space = spaces.Box(-1., 1., shape=(n_actions,), dtype='float32')
+        self.action_space = spaces.Box(-self.actionRange, self.actionRange, shape=(self.n_actions,), dtype='float32')
+
         self.observation_space = spaces.Dict(dict(
-            desired_goal=spaces.Box(-np.inf, np.inf, shape=obs['achieved_goal'].shape, dtype='float32'),
+            desired_goal=spaces.Box(-np.inf, np.inf, shape=obs['desired_goal'].shape, dtype='float32'),
             achieved_goal=spaces.Box(-np.inf, np.inf, shape=obs['achieved_goal'].shape, dtype='float32'),
             observation=spaces.Box(-np.inf, np.inf, shape=obs['observation'].shape, dtype='float32'),
         ))
+
+        # if self.cnn:
+        #     self.observation_space = spaces.Box(-np.inf, np.inf, shape=obs['observation'].shape, dtype='float32')
 
     @property
     def dt(self):
@@ -52,12 +60,10 @@ class RobotEnv(gym.GoalEnv):
     # Env methods
     # ----------------------------
     def table_info(self):
-        table_id = self.sim.model.geom_name2id('table0')
-        self.table_w, self.table_h, _ = self.sim.model.geom_size[table_id]
-        val = min(self.table_w, self.table_h)
-        val = val - val / 3.5
-        self.obj_range = val
-        self.target_range = val
+        floor_id = self.sim.model.geom_name2id('floor0')
+        self.floor_w, self.floor_h, _ = self.sim.model.geom_size[floor_id]
+        self.obj_range= self.floor_w - 0.08
+        self.target_range = self.floor_h - 0.04
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -71,10 +77,13 @@ class RobotEnv(gym.GoalEnv):
         obs = self._get_obs()
         done = False
         info = {
-            'is_success': self._is_success(obs['achieved_goal'], obs['desired_goal']),
+            'is_success': self._is_success(obs['achieved_goal'].copy(), obs['desired_goal'].copy()),
         }
-        reward = self.compute_reward(obs['achieved_goal'], obs['desired_goal'], info)
 
+        agent_pos = obs['observation'][0:3]
+        reward = self.compute_reward(obs['achieved_goal'], obs['desired_goal'], info, agent_pos)
+        # if self.cnn:
+        #     obs = obs['observation']
         return obs, reward, done, info
 
     def reset(self):
@@ -83,12 +92,14 @@ class RobotEnv(gym.GoalEnv):
         # Gimbel lock) or we may not achieve an initial condition (e.g. an object is within the hand).
         # In this case, we just keep randomizing until we eventually achieve a valid initial
         # configuration.
-        super(RobotEnv, self).reset()
+        # super(SuperEnv, self).reset()
         did_reset_sim = False
         while not did_reset_sim:
             did_reset_sim = self._reset_sim()
         self.goal = self._sample_goal().copy()
         obs = self._get_obs()
+        # if self.cnn:
+        #     obs = obs['observation']
         return obs
 
     def close(self):
@@ -117,6 +128,16 @@ class RobotEnv(gym.GoalEnv):
             self._viewer_setup(mode)
             self._viewers[mode] = self.viewer
         return self.viewer
+
+
+    # Mujoco Env methods
+    # ----------------------------
+    def do_simulation(self, ctrl, n_frames):
+        if self.sim.data.ctrl is not None:
+            self.sim.data.ctrl[:] = ctrl
+        for _ in range(n_frames):
+            self.sim.step()
+
 
     # Extension methods
     # ----------------------------
@@ -174,3 +195,4 @@ class RobotEnv(gym.GoalEnv):
         to enforce additional constraints on the simulation state.
         """
         pass
+        

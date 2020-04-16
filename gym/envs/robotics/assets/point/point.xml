@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mujoco>
+   <compiler inertiafromgeom="auto" angle="radian" coordinate="local"  meshdir="meshes" />
+    <option timestep="0.02" gravity="0 0 -9.81" iterations="20" integrator="Euler" />
+    <default>
+        <joint damping="1" />
+        <!-- <geom contype="1" conaffinity="1" condim="4" friction=".5 .1 .1" />  -->
+        <geom friction=".5 .1 .1"/>
+    </default>
+    <asset>
+        <material name="floor_mat" specular="0" shininess="0.5" reflectance="0" rgba="0.4 0.4 0.4 1"></material>
+        <material name="block_mat" specular="0" shininess="0.5" reflectance="0"></material>
+    </asset> 
+    <worldbody>
+        <camera name="top" mode= "fixed" fovy="75" euler="0 0 0" pos="0 0 0.7"/>
+        <light directional="true" ambient="0.2 0.2 0.2" diffuse="0.8 0.8 0.8" specular="0.3 0.3 0.3" castshadow="false" pos="0 0 4" dir="0 0 -1" name="light0"></light>
+    </worldbody>
+    <actuator> </actuator>
+</mujoco>
+    
+
+
+

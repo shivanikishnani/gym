@@ -1,0 +1,79 @@
+<?xml version="1.0" ?>
+<mujoco>
+ 
+   
+ <compiler angle="radian" coordinate="local" inertiafromgeom="auto" meshdir="meshes"/>
+ 
+    
+ <option gravity="0 0 -9.81" integrator="Euler" iterations="20" timestep="0.02"/>
+ 
+    
+ <default>
+  
+        
+  <joint damping="1"/>
+  
+        
+  <!-- <geom contype="1" conaffinity="1" condim="4" friction=".5 .1 .1" />  -->
+  
+        
+  <geom friction=".5 .1 .1"/>
+  
+    
+ </default>
+ 
+    
+ <asset>
+  
+        
+  <material name="floor_mat" reflectance="0" rgba="0.4 0.4 0.4 1" shininess="0.5" specular="0"/>
+  
+        
+  <material name="block_mat" reflectance="0" shininess="0.5" specular="0"/>
+  
+    
+ </asset>
+  
+    
+ <worldbody>
+  
+        
+  <camera euler="0 0 0" fovy="75" mode="fixed" name="top" pos="0 0 0.7"/>
+  
+        
+  <light ambient="0.2 0.2 0.2" castshadow="false" diffuse="0.8 0.8 0.8" dir="0 0 -1" directional="true" name="light0" pos="0 0 4" specular="0.3 0.3 0.3"/>
+  
+    
+  <body name="floor0" pos="0 0 0">
+   <geom conaffinity="1" condim="3" contype="1" material="floor_mat" name="floor0" pos="0 0 0" size="0.25 0.25 0.01" type="plane"/>
+  </body>
+  <body name="object0" pos="0.02 0.20 0.035">
+   <joint name="object0:joint" type="free"/>
+   <geom conaffinity="1" condim="3" contype="1" mass="0.04" material="block_mat" name="object0" rgba="1 1 0 1" size="0.025 0.025 0.025" type="box"/>
+   <site name="object0" pos="0 0 0" rgba="1 1 0 1" size="0.02" type="sphere"/>
+  </body>
+  <site name="target0" pos="0.13 -0.19 0.02" rgba="1 1 0 1" size="0.02 0.02 0.02" type="sphere"/>
+  <body name="wall0" pos="0 0.3 0.05">
+   <geom mass="5" name="wall0" rgba="0.2 0.2 0.2 1" size="0.3 0.01 0.1" type="box"/>
+  </body>
+  <body name="wall1" pos="0.3 0 0.05">
+   <geom mass="5" name="wall1" rgba="0.2 0.2 0.2 1" size="0.01 0.3 0.1" type="box"/>
+  </body>
+  <body name="wall2" pos="0 -0.3 0.05">
+   <geom mass="5" name="wall2" rgba="0.2 0.2 0.2 1" size="0.3 0.01 0.1" type="box"/>
+  </body>
+  <body name="wall3" pos="-0.3 0 0.05">
+   <geom mass="5" name="wall3" rgba="0.2 0.2 0.2 1" size="0.01 0.3 0.1" type="box"/>
+  </body>
+  <body name="agent0" pos="0 0 0.03">
+   <joint axis="1 0 0" name="agent0_x" type="slide"/>
+   <joint axis="0 1 0" name="agent0_y" type="slide"/>
+   <geom conaffinity="1" condim="3" contype="1" mass="3" name="agent" rgba="0 0 0 1" size="0.03" type="sphere"/>
+  </body>
+ </worldbody>
+ 
+    
+ <actuator> </actuator>
+ 
+
+</mujoco>
