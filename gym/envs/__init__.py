@@ -1,4 +1,9 @@
 from gym.envs.registration import registry, register, make, spec
+<<<<<<< HEAD
+from IPython import embed
+import pdb
+=======
+>>>>>>> a6bbc269cf86b12778206d6ddda7097510e1328d
 
 # Algorithmic
 # ----------------------------------------
@@ -109,14 +114,22 @@ register(
 )
 
 register(
+<<<<<<< HEAD
+    id='BipedalWalker-v2',
+=======
     id='BipedalWalker-v3',
+>>>>>>> a6bbc269cf86b12778206d6ddda7097510e1328d
     entry_point='gym.envs.box2d:BipedalWalker',
     max_episode_steps=1600,
     reward_threshold=300,
 )
 
 register(
+<<<<<<< HEAD
+    id='BipedalWalkerHardcore-v2',
+=======
     id='BipedalWalkerHardcore-v3',
+>>>>>>> a6bbc269cf86b12778206d6ddda7097510e1328d
     entry_point='gym.envs.box2d:BipedalWalkerHardcore',
     max_episode_steps=2000,
     reward_threshold=300,
@@ -181,7 +194,11 @@ register(
 )
 
 register(
+<<<<<<< HEAD
+    id='Taxi-v2',
+=======
     id='Taxi-v3',
+>>>>>>> a6bbc269cf86b12778206d6ddda7097510e1328d
     entry_point='gym.envs.toy_text:TaxiEnv',
     reward_threshold=8, # optimum = 8.46
     max_episode_steps=200,
@@ -340,7 +357,50 @@ def _merge(a, b):
     return a
 
 for reward_type in ['sparse', 'dense']:
+    for obj in range(0, 6):
+        suffix = 'Dense' if reward_type == 'dense' else ''
+        num_objs = '' if obj == 1 else '-%d' %obj 
+        kwargs = {
+            'reward_type': reward_type,
+            'num_objs': obj,
+        }
+        if obj >= 1:
+            register(
+                id='FetchPush{}{}-v1'.format(suffix, num_objs),
+                entry_point='gym.envs.robotics:FetchPushEnv',
+                kwargs=kwargs,
+                max_episode_steps=50,
+            )
+        num_objs = '-%d' %(obj) 
+
+        register(
+            id='PointMass{}{}-v1'.format(suffix, num_objs), #, cnn_suffix),
+            entry_point='gym.envs.robotics:PointMassEnv',
+            kwargs=kwargs,
+            max_episode_steps=50,
+        )
+
+
+
+for reward_type in ['sparse', 'dense']:
+    #pointmass
+    for obj in range(5):
+        suffix = 'Dense' if reward_type == 'dense' else ''
+        num_objs = '-%d' %obj 
+        kwargs = {
+            'reward_type': reward_type,
+            'num_objs': obj,
+        }
+
+        # register(
+        #     id='PointMass{}{}-v1'.format(suffix, num_objs), #, cnn_suffix),
+        #     entry_point='gym.envs.robotics:PointMassEnv',
+        #     kwargs=kwargs,
+        #     max_episode_steps=50,
+        # )
+
     suffix = 'Dense' if reward_type == 'dense' else ''
+
     kwargs = {
         'reward_type': reward_type,
     }
