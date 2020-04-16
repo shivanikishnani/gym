@@ -3,9 +3,6 @@ from gym.envs.robotics import rotations, utils, super_env
 from mujoco_py.generated import const
 import glfw
 import mujoco_py
-#from multiworld.envs.pygame.pygame_viewer import PygameViewer
-from IPython import embed
-from gym.envs.misc import overrides
 import pdb
 import glfw
 
