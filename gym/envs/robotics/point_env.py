@@ -7,7 +7,8 @@ import pdb
 import glfw
 
 def goal_distance(goal_a, goal_b):
-    assert goal_a.shape == goal_b.shape
+    if goal_a.shape != goal_b.shape:
+        pdb.set_trace()
     return np.linalg.norm(goal_a - goal_b, axis=-1)
 
 
@@ -53,25 +54,33 @@ class PointEnv(super_env.SuperEnv):
     # GoalEnv methods
     # ----------------------------
 
-    def compute_reward(self, achieved_goal, goal, info, agent_pos=None):
+    def compute_reward(self, achieved_goal, desired_goal, info, agent_pos=None):
         # Compute distance between goal and the achieved goal.
-        d1 = goal_distance(achieved_goal, goal)
+        a_goal = np.hsplit(achieved_goal, self.num_objs)
+        goal = np.hsplit(desired_goal, self.num_objs)
+
+        d1 = np.array([goal_distance(ag, g) for ag, g in zip(a_goal, goal)])
+
         if self.reward_type == 'sparse':
-            return -(d1 > self.distance_threshold).astype(np.float32)
+            d1 = sum([(d > self.distance_threshold).astype(np.float32) for d in d1])
+            return -d1
         else:
+            d1 = sum(d1)
             if not self.has_object:
                 return -d1
-            d2 = 0
-            for i in range(self.num_objs):
-                d2 += goal_distance(achieved_goal[i * 3 : (i + 1) * 3], agent_pos)
-            # if d2 < self.distance_threshold:
-            #     d2_weight = 0
-            # else:
-            #     d2_weight = 1
-            # if d1 < self.distance_threshold:
-            #     d2_weight = 0
+            d2 = [goal_distance(ag, agent_pos) for ag in a_goal]
+            d2 = min(d2)
+            # d2 += goal_distance(achieved_goal[:, i * 3 : (i + 1) * 3].flatten(), agent_pos)
+
             d2_weight = 0.5
             return - (d1 + d2_weight * d2)
+
+    def _is_success(self, achieved_goal, desired_goal):
+        a_goal = np.hsplit(achieved_goal, self.num_objs)
+        goal = np.hsplit(desired_goal, self.num_objs)
+        d = sum([(goal_distance(ag, g) < self.distance_threshold).astype(np.float32) for ag, g in zip(a_goal, goal)])
+        return (d // self.num_objs).astype(np.float32)
+
 
     # RobotEnv methods
     # ----------------------------
@@ -127,13 +136,12 @@ class PointEnv(super_env.SuperEnv):
         ])
 
         # if self.cnn:
-        #     obs = np.flatten(self.render(mode='rgb_array', width=128, height=128))
+        #     obs = np.flatten(self.render(mode='rgb_array', width=84, height=84))
         #     return {
-        #     'achieved_goal': obs.copy(),
+        #     'achieved_goal': flatten(achieved_goal),
         #     'observation': obs.copy(),
-        #     'desired_goal': self.goal_img.copy()
+        #     'desired_goal': flatten(object_pos)
         #     }
-
 
         if self.cnn:
             obs = self.render(mode='rgb_array', width=128, height=128) #maybe flatten this?
@@ -178,7 +186,6 @@ class PointEnv(super_env.SuperEnv):
                     n = self.np_random.uniform(self.gRange - 0.05, 0, size=1)[0]
                     while n > self.goal.flatten()[0]:
                         n = self.np_random.uniform(self.gRange - 0.05, 0, size=1)[0]
-
                     object_xpos = np.array([np.array([n, 0])])
                 elif self.fixed_obj:
                     object_xpos = np.array([np.array([-0.1, 0])])
@@ -203,9 +210,10 @@ class PointEnv(super_env.SuperEnv):
         if self.fixed_goal:
             pos = np.array([np.array([self.gRange - 0.05, self.gRange - 0.05, 0]) for _ in range(max(1, self.num_objs))])
             return pos.copy()
+
         num = max(1, self.num_objs)
         goal = list(range(num))
-        for i in range(max(1, self.num_objs)):
+        for i in range(num):
             gl = self.initial_agent_position[:3] + self.np_random.uniform(-self.target_range, self.target_range, size=3)
             gl += self.target_offset
             gl[2] = self.height_offset
@@ -213,11 +221,6 @@ class PointEnv(super_env.SuperEnv):
         goal = np.array(goal).flatten() #reshape(num, -1)
 
         return goal.copy()
-
-
-    def _is_success(self, achieved_goal, desired_goal):
-        d = np.array(goal_distance(achieved_goal, desired_goal))
-        return (d < self.distance_threshold).astype(np.float32)
 
     def _env_setup(self, initial_qpos):
         for name, value in initial_qpos.items():
@@ -233,10 +236,6 @@ class PointEnv(super_env.SuperEnv):
         return super(PointEnv, self).render(mode, width, height)
 
     def set_agent0_xy(self, goal_pos):
-        # if self.has_object:
-        #     self.sim.data.set_joint_qpos('agent0_x', 60)
-        #     self.sim.data.set_joint_qpos('agent0_y', 60)
-        # else:
         self.sim.data.set_joint_qpos('agent0_x', goal_pos[0])
         self.sim.data.set_joint_qpos('agent0_y', goal_pos[1])
         self.sim.forward()
@@ -268,6 +267,18 @@ class PointEnv(super_env.SuperEnv):
                 return self.obj
             self.obj = np.argpartition(norm, self.num_completed)[self.num_completed]
         return self.obj
+    
 
+                # if (achieved_goal.shape == (49, 6)):
+            #     d = 0
+            #     # for i in range(2):
+            #     d =[goal_distance(achieved_goal[:, i * 3 : (i + 1) * 3], desired_goal[:, i * 3 : (i + 1) * 3]) for i in range(2)]
+            #     print("GOAL_DIST. : ", d)
+            #     print(d1)
+                # pdb.set_trace()
+            # if (achieved_goal.shape == (49, 6)):
+            #     print(achieved_goal)
+            #     print(desired_goal)
+            #     print(d1 , '\n')
 """
 
