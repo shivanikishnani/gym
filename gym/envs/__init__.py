@@ -373,10 +373,18 @@ for reward_type in ['sparse', 'dense']:
         kwargs = {
             'reward_type': reward_type,
             'num_objs': obj,
+            'cnn' : False,
         }
 
         register(
             id='PointMass{}{}-v1'.format(suffix, num_objs), #, cnn_suffix),
+            entry_point='gym.envs.robotics:PointMassEnv',
+            kwargs=kwargs,
+            max_episode_steps=50,
+        )
+        kwargs['cnn'] = True,
+        register(
+            id='PointMass{}{}-v2'.format(suffix, num_objs), #, cnn_suffix),
             entry_point='gym.envs.robotics:PointMassEnv',
             kwargs=kwargs,
             max_episode_steps=50,

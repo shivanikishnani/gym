@@ -41,6 +41,9 @@ class SuperEnv(gym.Env):
         self.initial_state = copy.deepcopy(self.sim.get_state())
 
         self.goal = self._sample_goal()
+        if self.cnn:
+            self.img_goal = self.get_goal_img(self.goal.copy())
+
         obs = self._get_obs()
         self.action_space = spaces.Box(-self.actionRange, self.actionRange, shape=(self.n_actions,), dtype='float32')
 
@@ -50,8 +53,16 @@ class SuperEnv(gym.Env):
             observation=spaces.Box(-np.inf, np.inf, shape=obs['observation'].shape, dtype='float32'),
         ))
 
-        # if self.cnn:
-        #     self.observation_space = spaces.Box(-np.inf, np.inf, shape=obs['observation'].shape, dtype='float32')
+        if self.cnn:
+            self.observation_space = spaces.Dict(dict(
+            desired_goal=spaces.Box(-np.inf, np.inf, shape=obs['desired_goal'].shape, dtype='float32'),
+            achieved_goal=spaces.Box(-np.inf, np.inf, shape=obs['achieved_goal'].shape, dtype='float32'),
+            observation=spaces.Box(-np.inf, np.inf, shape=obs['observation'].shape, dtype='float32'),
+            state_desired_goal=spaces.Box(-np.inf, np.inf, shape=obs['state_desired_goal'].shape, dtype='float32'),
+            state_achieved_goal=spaces.Box(-np.inf, np.inf, shape=obs['state_achieved_goal'].shape, dtype='float32'),
+            state_observation=spaces.Box(-np.inf, np.inf, shape=obs['state_observation'].shape, dtype='float32'),
+        ))
+
 
     @property
     def dt(self):
@@ -97,6 +108,8 @@ class SuperEnv(gym.Env):
         while not did_reset_sim:
             did_reset_sim = self._reset_sim()
         self.goal = self._sample_goal().copy()
+        if self.cnn:
+            self.img_goal = self.get_goal_img(self.goal.copy())
         obs = self._get_obs()
         # if self.cnn:
         #     obs = obs['observation']

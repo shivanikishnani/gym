@@ -39,6 +39,7 @@ class PointEnv(super_env.SuperEnv):
         self.cnn = cnn
         self.has_object = self.num_objs > 0
         self.frame_skip = 1
+        self.img_goal = None
 
         self.rw_scale = 1
 
@@ -56,8 +57,9 @@ class PointEnv(super_env.SuperEnv):
 
     def compute_reward(self, achieved_goal, desired_goal, info, agent_pos=None):
         # Compute distance between goal and the achieved goal.
-        a_goal = np.hsplit(achieved_goal, self.num_objs)
-        goal = np.hsplit(desired_goal, self.num_objs)
+        num = max(1, self.num_objs)
+        a_goal = np.hsplit(achieved_goal, num)
+        goal = np.hsplit(desired_goal, num)
 
         d1 = np.array([goal_distance(ag, g) for ag, g in zip(a_goal, goal)])
 
@@ -76,8 +78,9 @@ class PointEnv(super_env.SuperEnv):
             return - (d1 + d2_weight * d2)
 
     def _is_success(self, achieved_goal, desired_goal):
-        a_goal = np.hsplit(achieved_goal, self.num_objs)
-        goal = np.hsplit(desired_goal, self.num_objs)
+        num = max(1, self.num_objs)
+        a_goal = np.hsplit(achieved_goal, num)
+        goal = np.hsplit(desired_goal, num)
         d = sum([(goal_distance(ag, g) < self.distance_threshold).astype(np.float32) for ag, g in zip(a_goal, goal)])
         return (d // self.num_objs).astype(np.float32)
 
@@ -135,18 +138,18 @@ class PointEnv(super_env.SuperEnv):
             flatten(object_velp), flatten(object_velr), #agent_vel.flatten().ravel(),
         ])
 
-        # if self.cnn:
-        #     obs = np.flatten(self.render(mode='rgb_array', width=84, height=84))
-        #     return {
-        #     'achieved_goal': flatten(achieved_goal),
-        #     'observation': obs.copy(),
-        #     'desired_goal': flatten(object_pos)
-        #     }
-
         if self.cnn:
-            obs = self.render(mode='rgb_array', width=128, height=128) #maybe flatten this?
+            img_obs = self.render(mode='rgb_array', width=84, height=84) #maybe flatten this?
             goal = self.goal.flatten()
-            achieved_goal = ag.flatten() #desired_goal = self.goal_img.copy()
+            return {
+            'observation': img_obs.copy(),
+            'achieved_goal': img_obs.copy(),
+            'desired_goal': self.img_goal.copy(),
+            'state_observation': obs.copy(),
+            'state_achieved_goal': achieved_goal,
+            'state_desired_goal': flatten(self.goal),
+            }
+
 
 
         return {
@@ -170,7 +173,11 @@ class PointEnv(super_env.SuperEnv):
             self.sim.forward()
 
     def get_object_xy(self, id):
-        return self.sim.data.get_joint_qpos('object%d:joint' % id)[:2]
+        if self.has_object:
+            return [self.sim.data.set_joint_qpos('object%d:joint' % id)[:2] for i in range(self.num_objs)]
+
+    def get_agent_xy(self):
+        return [self.sim.data.get_joint_qpos('agent0_x'), self.sim.data.get_joint_qpos('agent0_y')]
 
     def _reset_sim(self):
         self.sim.set_state(self.initial_state)
@@ -219,7 +226,6 @@ class PointEnv(super_env.SuperEnv):
             gl[2] = self.height_offset
             goal[i] = gl
         goal = np.array(goal).flatten() #reshape(num, -1)
-
         return goal.copy()
 
     def _env_setup(self, initial_qpos):
@@ -232,7 +238,7 @@ class PointEnv(super_env.SuperEnv):
 
         self.height_offset = self.sim.data.get_site_xpos('target0')[2]
 
-    def render(self, mode='human', width=128, height=128):
+    def render(self, mode='human', width=84, height=84):
         return super(PointEnv, self).render(mode, width, height)
 
     def set_agent0_xy(self, goal_pos):
@@ -248,6 +254,21 @@ class PointEnv(super_env.SuperEnv):
             self.sim.data.set_joint_qpos('object%d:joint' % i, object_qpos[i])
         self.sim.forward()
 
+
+    def get_goal_img(self, goal_pos):
+        old_obj_pos = None
+        old_ag_pos = self.get_agent_xy()
+        if self.has_object:
+            old_obj_pos = self.get_object_xy()
+            self.set_object_xy(goal_pos)
+        else:
+            self.set_agent0_xy(goal_pos)
+        img = self.render('rgb_array')
+        if self.has_object:
+            self.set_object_xy(old_obj_pos)
+        else:
+            self.set_agent0_xy(old_ag_pos)
+        return img
 
 
 
