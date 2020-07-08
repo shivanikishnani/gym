@@ -14,7 +14,7 @@ MODEL_XML_PATH = os.path.join('point', 'output.xml')
 
 
 class PointMassEnv(point_env.PointEnv, utils.EzPickle):
-    def __init__(self, reward_type='sparse', num_objs=1, num_obstacles=0, cnn=False):
+    def __init__(self, reward_type='sparse', num_objs=1, num_obstacles=0):
         path = os.path.dirname(os.path.dirname(__file__))
         main(num_objs, path, 'point/point.xml')
         self.gRange = xmlCreator.gRange
@@ -29,7 +29,7 @@ class PointMassEnv(point_env.PointEnv, utils.EzPickle):
 
         if self.deterministic:
             initial_qpos = {
-                'agent0_x': -0.2,
+                'agent0_x': 0,
             }
         else:
             initial_qpos = {
@@ -46,7 +46,7 @@ class PointMassEnv(point_env.PointEnv, utils.EzPickle):
         point_env.PointEnv.__init__(
             self, MODEL_XML_PATH, n_substeps=20,
             distance_threshold=0.05,
-            initial_qpos=initial_qpos, reward_type=reward_type, num_objs=num_objs, cnn=cnn)
+            initial_qpos=initial_qpos, reward_type=reward_type, num_objs=num_objs)
         utils.EzPickle.__init__(self)
 
 

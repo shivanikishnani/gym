@@ -26,6 +26,7 @@ class RobotEnv(gym.GoalEnv):
         self.sim = mujoco_py.MjSim(model, nsubsteps=n_substeps)
         self.viewer = None
         self._viewers = {}
+
         self.metadata = {
             'render.modes': ['human', 'rgb_array'],
             'video.frames_per_second': int(np.round(1.0 / self.dt))
@@ -34,7 +35,6 @@ class RobotEnv(gym.GoalEnv):
         self.seed()
         self._env_setup(initial_qpos=initial_qpos)
         self.initial_state = copy.deepcopy(self.sim.get_state())
-        self.table_info()
 
         self.goal = self._sample_goal()
         obs = self._get_obs()
@@ -51,13 +51,6 @@ class RobotEnv(gym.GoalEnv):
 
     # Env methods
     # ----------------------------
-    def table_info(self):
-        table_id = self.sim.model.geom_name2id('table0')
-        self.table_w, self.table_h, _ = self.sim.model.geom_size[table_id]
-        val = min(self.table_w, self.table_h)
-        val = val - val / 3.5
-        self.obj_range = val
-        self.target_range = val
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -69,12 +62,13 @@ class RobotEnv(gym.GoalEnv):
         self.sim.step()
         self._step_callback()
         obs = self._get_obs()
+
         done = False
         info = {
-            'is_success': self._is_success(obs['achieved_goal'], obs['desired_goal']),
+            'is_success': self._is_success(obs['achieved_goal'], self.goal),
+            'state_dist' : np.linalg.norm(obs['achieved_goal'] - obs['desired_goal'], axis=-1)
         }
-        reward = self.compute_reward(obs['achieved_goal'], obs['desired_goal'], info)
-
+        reward = self.compute_reward(obs['achieved_goal'], self.goal, info)
         return obs, reward, done, info
 
     def reset(self):
@@ -93,6 +87,7 @@ class RobotEnv(gym.GoalEnv):
 
     def close(self):
         if self.viewer is not None:
+            # self.viewer.finish()
             self.viewer = None
             self._viewers = {}
 
@@ -114,7 +109,7 @@ class RobotEnv(gym.GoalEnv):
                 self.viewer = mujoco_py.MjViewer(self.sim)
             elif mode == 'rgb_array':
                 self.viewer = mujoco_py.MjRenderContextOffscreen(self.sim, device_id=-1)
-            self._viewer_setup(mode)
+            self._viewer_setup()
             self._viewers[mode] = self.viewer
         return self.viewer
 

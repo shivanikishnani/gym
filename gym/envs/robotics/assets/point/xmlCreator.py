@@ -108,7 +108,7 @@ def create_floor():
 	body_name = "floor0"
 	geom_name = 'floor0'
 
-	size = "{} {} 0.01".format(gRange, gRange) 
+	size = "{} {} 0.01".format(gRange + 0.5, gRange +0.5) 
 	floor = etree.Element('body', name=body_name)
 	pos = "0 0 0"
 	floor.set('pos', pos)
@@ -158,7 +158,7 @@ def make_target(body_id, mjcf_model, **kwargs):
 
 
 def make_walls():
-	wall_range = gRange + 0.05
+	wall_range = gRange
 	sizes = [wall_range, 0.01]
 	poses = [0, wall_range]
 	walls = []
@@ -174,7 +174,7 @@ def make_walls():
 		pos = "{} {} 0.05".format(poses[i%2], poses[(i+1)%2])
 
 		body.set('pos', pos)
-		color = "0.2 0.2 0.2 1"
+		color = "0.4 0 0 1"
 		geom = etree.SubElement(body, 
 			'geom', 
 			name=geom_name, 
