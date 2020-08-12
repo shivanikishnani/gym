@@ -6,6 +6,7 @@ from gym.wrappers.atari_preprocessing import AtariPreprocessing
 from gym.wrappers.rescale_action import RescaleAction
 from gym.wrappers.flatten_observation import FlattenObservation
 from gym.wrappers.gray_scale_observation import GrayScaleObservation
+from gym.wrappers.dict import FlattenDictWrapper
 from gym.wrappers.frame_stack import LazyFrames
 from gym.wrappers.frame_stack import FrameStack
 from gym.wrappers.transform_observation import TransformObservation
